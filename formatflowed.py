@@ -15,7 +15,7 @@ __revision_id__ = '$Id$'
 
 import textwrap
 
-__all__ = ['FormatFlowedDecoder']
+__all__ = ['FormatFlowedDecoder', 'decode', 'convertToWrapped']
 
 class FormatFlowedDecoder:
     """Object for converting format=flowed text to other formats
