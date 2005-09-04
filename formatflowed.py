@@ -325,8 +325,7 @@ def convertToWrapped(flowed, width=78, quote='>', newline='\n',
     
     """
     result = []
-    decoder = FormatFlowedDecoder(**kwargs)
-    for info, chunk in decoder.decode(flowed):
+    for info, chunk in decode(flowed, **kwargs):
         type = info['type']
         quotedepth = info['quotedepth']
         chunk = chunk.encode(encoding)
