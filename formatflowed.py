@@ -13,6 +13,8 @@ mimetype text.
 
 __revision_id__ = '$Id$'
 
+import textwrap
+
 __all__ = ['FormatFlowedDecoder']
 
 class FormatFlowedDecoder:
@@ -253,6 +255,95 @@ class FormatFlowedDecoder:
             # exception case: last line was a flowed line
             yield (pinfo, para)
             
+            
+# -- Convenience functions ---------------------------------------------
+
+def decode(flowed, **kwargs):
+    """Convert format=flowed text
+    
+    See the FormatFlowedDecoder.decode docstring for more information. All
+    keyword arguments are passed to the FormatFlowedDecoder instance.
+    
+    """
+    decoder = FormatFlowedDecoder(**kwargs)
+    return decoder.decode(flowed)
+
+def convertToWrapped(flowed, width=78, quote='>', newline='\n',
+                     encoding='ascii', wrap_fixed=True, **kwargs):
+    """Covert flowed text to encoded and wrapped text
+    
+    Create text suitable for a proportional font, fixed with, plain text
+    display. The argements are interpreted as follows:
+      flowed
+        The format=flowed formatted text to convert
+      width (default: 78)
+        The maximum line length at which to wrap paragraphs. 
+      quote (default: '>')
+        Character sequence to use to mark quote depths; it is multiplied with
+        the quotedepth to quote a line. If this sequence does not end in a
+        space a space is added between the quotemars and the line.
+      newline (default: '\n')
+        Lines are joined with the newline character sequence.
+      encoding (default: ascii)
+        Text chunks from the decoded flowed text are encoded to this encoding
+      wrap_fixed (default: True)
+        If true, fixed text chunks are wrapped to the given  width as well,
+        including hard word breaks if a word exceeds the line width
+        
+      The remaining arguments are used as arguments to FormatFlowedDecoder.
+      
+      Here is a simple example:
+    
+        >>> CRLF = '\\r\\n'
+        >>> print convertToWrapped(CRLF.join((
+        ... ">> `Take some more tea,' the March Hare said to Alice, very ",
+        ... ">> earnestly.",
+        ... ">",
+        ... "> `I've had nothing yet,' Alice replied in an offended ",
+        ... "> tone, `so I can't take more.'",
+        ... "",
+        ... "`You mean you can't take less,' said the Hatter: `it's very ",
+        ... "easy to take more than nothing.'",
+        ... "",
+        ... "-- ",
+        ... "Lewis Caroll")), width=65)
+        >> `Take some more tea,' the March Hare said to Alice, very
+        >> earnestly.
+        > 
+        > `I've had nothing yet,' Alice replied in an offended tone, `so
+        > I can't take more.'
+        <BLANKLINE>
+        `You mean you can't take less,' said the Hatter: `it's very easy
+        to take more than nothing.'
+        <BLANKLINE>
+        -- 
+        Lewis Caroll
+        
+    (Although not directly visible in this example, the output contains
+    a trailing space at the end of the empty quoted line and the signature
+    seperator).
+    
+    """
+    result = []
+    decoder = FormatFlowedDecoder(**kwargs)
+    for info, chunk in decoder.decode(flowed):
+        type = info['type']
+        quotedepth = info['quotedepth']
+        chunk = chunk.encode(encoding)
+        quotemarker = quotedepth and quote * quotedepth or ''
+        if quotemarker and quote[-1] != ' ':
+            quotemarker += ' '
+        if type == 'fixed' and not wrap_fixed:
+            result.append(quotemarker + chunk)
+        elif not chunk or type == 'signature-separator':
+            result.append(quotemarker + chunk)
+        else:
+            result.extend(textwrap.wrap(chunk, width,
+                                        replace_whitespace=False,
+                                        initial_indent=quotemarker,
+                                        subsequent_indent=quotemarker))
+    return newline.join(result)
+    
 
 def _test(verbose=False):
     import doctest
