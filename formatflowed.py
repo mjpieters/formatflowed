@@ -209,11 +209,27 @@ class FormatFlowedDecoder:
             ...    u'Contrived example with a word-break across the '
             ...    u'paragraph.')]
             True
+            
+        Note that the characterset determines what how to interpret a space
+        and a quote marker. The cp037 characterset does not encode these 
+        characters the same way, for example:
         
+            >>> decoder = FormatFlowedDecoder(character_set='cp037')
+            >>> result = decoder.decode(CRLF.join((
+            ... "n@\xe3\x88\x89\xa2@\x89\xa2@\x81@\x98\xa4\x96\xa3\x85\x84@"
+            ... "\x97\x81\x99\x81\x87\x99\x81\x97\x88@",
+            ... "n@\x85\x95\x83\x96\x84\x85\x84@\x89\x95@\x83\x97\xf0\xf3"
+            ... "\xf7K")))
+            >>> list(result) == [
+            ...   ({'quotedepth': 1, 'type': 'paragraph'},
+            ...    u'This is a quoted paragraph encoded in cp037.')]
+            True
+            
         """
         para = u''
         pinfo = {'type': 'paragraph'}
-        for line in flowed.decode(self.character_set).split('\r\n'):
+        for line in flowed.split('\r\n'):
+            line = line.decode(self.character_set)
             quotedepth, line = self._stripquotes(line)
             line = self._stripstuffing(line)
             if line == '-- ':
