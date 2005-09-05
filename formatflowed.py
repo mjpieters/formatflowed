@@ -15,7 +15,17 @@ __revision_id__ = '$Id$'
 
 import textwrap
 
-__all__ = ['FormatFlowedDecoder', 'decode', 'convertToWrapped']
+__all__ = [
+    'PARAGRAPH',
+    'FIXED',
+    'SIGNATURE_SEPARATOR',
+    'FormatFlowedDecoder', 
+    'decode', 
+    'convertToWrapped'
+]
+
+# Constants denoting the various text chunk types recognized by format=flowed
+PARAGRAPH, FIXED, SIGNATURE_SEPARATOR = range(3)
 
 class FormatFlowedDecoder:
     """Object for converting format=flowed text to other formats
@@ -113,14 +123,14 @@ class FormatFlowedDecoder:
         Returns an iterable serving a sequence of (information, chunk)
         tuples. information is a dictionary with the following fields:
           type
-            One of 'paragraph', 'fixed', 'signature-separator'
+            One of PARAGRAPH, FIXED, SIGNATURE_SEPARATOR
           quotedepth
             Number of quotemarks found on the text chunk
             
         chunk is a unicode string. All text is unwrapped and without any 
         quotemarks; when displaying these chunks, the appropriate quotemarks
-        should be added again, and chunks of type 'paragraph' should be
-        displayed wrapped. Chunks of type 'fixed' should be displayed 
+        should be added again, and chunks of type PARAGRAPH should be
+        displayed wrapped. Chunks of type FIXED should be displayed 
         unwrapped.
         
         Here is a simple example:
@@ -140,20 +150,20 @@ class FormatFlowedDecoder:
             ... "-- ",
             ... "Lewis Carroll")))
             >>> list(result) == [
-            ...   ({'quotedepth': 2, 'type': 'paragraph'}, 
+            ...   ({'quotedepth': 2, 'type': PARAGRAPH}, 
             ...     u"`Take some more tea,' the March Hare said to Alice, "
             ...     u"very earnestly."),
-            ...   ({'quotedepth': 1, 'type': 'fixed'}, u""),
-            ...   ({'quotedepth': 1, 'type': 'paragraph'}, 
+            ...   ({'quotedepth': 1, 'type': FIXED}, u""),
+            ...   ({'quotedepth': 1, 'type': PARAGRAPH}, 
             ...    u"`I've had nothing yet,' Alice replied in an offended "
             ...    u"tone, `so I can't take more.'"),
-            ...   ({'quotedepth': 0, 'type': 'fixed'}, u""),
-            ...   ({'quotedepth': 0, 'type': 'paragraph'}, 
+            ...   ({'quotedepth': 0, 'type': FIXED}, u""),
+            ...   ({'quotedepth': 0, 'type': PARAGRAPH}, 
             ...    u"`You mean you can't take less,' said the Hatter: `it's "
             ...    u"very easy to take more than nothing.'"),
-            ...   ({'quotedepth': 0, 'type': 'fixed'}, u""),
-            ...   ({'quotedepth': 0, 'type': 'signature-separator'}, u"-- "),
-            ...   ({'quotedepth': 0, 'type': 'fixed'}, u"Lewis Carroll")
+            ...   ({'quotedepth': 0, 'type': FIXED}, u""),
+            ...   ({'quotedepth': 0, 'type': SIGNATURE_SEPARATOR}, u"-- "),
+            ...   ({'quotedepth': 0, 'type': FIXED}, u"Lewis Carroll")
             ... ]
             True
         
@@ -168,11 +178,11 @@ class FormatFlowedDecoder:
             ... ">> Depth two paragraph with flow space. ",
             ... "Depth zero paragraph with fixed line.")))
             >>> list(result) == [
-            ...   ({'quotedepth': 1, 'type': 'paragraph'},
+            ...   ({'quotedepth': 1, 'type': PARAGRAPH},
             ...    u"Depth one paragraph with flow space. "),
-            ...   ({'quotedepth': 2, 'type': 'paragraph'},
+            ...   ({'quotedepth': 2, 'type': PARAGRAPH},
             ...    u"Depth two paragraph with flow space. "),
-            ...   ({'quotedepth': 0, 'type': 'fixed'},
+            ...   ({'quotedepth': 0, 'type': FIXED},
             ...    u"Depth zero paragraph with fixed line.")]
             True
         
@@ -182,9 +192,9 @@ class FormatFlowedDecoder:
             ... "A paragraph with flow space. ",
             ... "-- ")))
             >>> list(result) == [
-            ...   ({'quotedepth': 0, 'type': 'paragraph'},
+            ...   ({'quotedepth': 0, 'type': PARAGRAPH},
             ...    u"A paragraph with flow space. "),
-            ...   ({'quotedepth': 0, 'type': 'signature-separator'}, u"-- ")]
+            ...   ({'quotedepth': 0, 'type': SIGNATURE_SEPARATOR}, u"-- ")]
             True
             
         - The end of the message:
@@ -192,7 +202,7 @@ class FormatFlowedDecoder:
             >>> result = decoder.decode(CRLF.join((
             ... "A paragraph with flow space. ",)))
             >>> list(result) == [
-            ...   ({'quotedepth': 0, 'type': 'paragraph'},
+            ...   ({'quotedepth': 0, 'type': PARAGRAPH},
             ...    u"A paragraph with flow space. ")]
             True
             
@@ -205,7 +215,7 @@ class FormatFlowedDecoder:
             ... "Contrived example with a word- ",
             ... "break across the paragraph.")))
             >>> list(result) == [
-            ...   ({'quotedepth': 0, 'type': 'paragraph'}, 
+            ...   ({'quotedepth': 0, 'type': PARAGRAPH}, 
             ...    u'Contrived example with a word-break across the '
             ...    u'paragraph.')]
             True
@@ -221,13 +231,13 @@ class FormatFlowedDecoder:
             ... "n@\x85\x95\x83\x96\x84\x85\x84@\x89\x95@\x83\x97\xf0\xf3"
             ... "\xf7K")))
             >>> list(result) == [
-            ...   ({'quotedepth': 1, 'type': 'paragraph'},
+            ...   ({'quotedepth': 1, 'type': PARAGRAPH},
             ...    u'This is a quoted paragraph encoded in cp037.')]
             True
             
         """
         para = u''
-        pinfo = {'type': 'paragraph'}
+        pinfo = {'type': PARAGRAPH}
         for line in flowed.split('\r\n'):
             line = line.decode(self.character_set)
             quotedepth, line = self._stripquotes(line)
@@ -237,9 +247,9 @@ class FormatFlowedDecoder:
                 if para:
                     # exception case: flowed line followed by sig-sep
                     yield (pinfo, para)
-                    pinfo = {'type': 'paragraph'}
+                    pinfo = {'type': PARAGRAPH}
                     para = u''
-                yield ({'type': 'signature-separator', 
+                yield ({'type': SIGNATURE_SEPARATOR, 
                         'quotedepth': quotedepth}, line)
                 continue
             if line.endswith(u' '):
@@ -247,7 +257,7 @@ class FormatFlowedDecoder:
                 if quotedepth != pinfo.get('quotedepth', quotedepth):
                     # exception case: flowed line followed by quotedepth change
                     yield (pinfo, para)
-                    pinfo = {'type': 'paragraph'}
+                    pinfo = {'type': PARAGRAPH}
                     para = u''
                 para += self._stripflow(line)
                 pinfo['quotedepth'] = quotedepth
@@ -258,14 +268,14 @@ class FormatFlowedDecoder:
                 if quotedepth != pinfo.get('quotedepth', quotedepth):
                     # exception case: flowed line followed by quotedepth change
                     yield (pinfo, para)
-                    pinfo = {'type': 'paragraph'}
+                    pinfo = {'type': PARAGRAPH}
                     para = u''
                 else:
                     yield (pinfo, para + line)
-                    pinfo = {'type': 'paragraph'}
+                    pinfo = {'type': PARAGRAPH}
                     para = u''
                     continue
-            yield ({'type': 'fixed', 'quotedepth': quotedepth}, line)
+            yield ({'type': FIXED, 'quotedepth': quotedepth}, line)
             
         if para:
             # exception case: last line was a flowed line
@@ -348,9 +358,9 @@ def convertToWrapped(flowed, width=78, quote='>', newline='\n',
         quotemarker = quotedepth and quote * quotedepth or ''
         if quotemarker and quote[-1] != ' ':
             quotemarker += ' '
-        if type == 'fixed' and not wrap_fixed:
+        if type == FIXED and not wrap_fixed:
             result.append(quotemarker + chunk)
-        elif not chunk or type == 'signature-separator':
+        elif not chunk or type == SIGNATURE_SEPARATOR:
             result.append(quotemarker + chunk)
         else:
             result.extend(textwrap.wrap(chunk, width,
