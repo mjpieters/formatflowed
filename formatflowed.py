@@ -226,10 +226,10 @@ class FormatFlowedDecoder:
         
             >>> decoder = FormatFlowedDecoder(character_set='cp037')
             >>> result = decoder.decode(CRLF.join((
-            ... "n@\xe3\x88\x89\xa2@\x89\xa2@\x81@\x98\xa4\x96\xa3\x85\x84@"
-            ... "\x97\x81\x99\x81\x87\x99\x81\x97\x88@",
-            ... "n@\x85\x95\x83\x96\x84\x85\x84@\x89\x95@\x83\x97\xf0\xf3"
-            ... "\xf7K")))
+            ... "n@\\xe3\\x88\\x89\\xa2@\\x89\\xa2@\\x81@\\x98\\xa4\\x96\\xa3"
+            ... "\\x85\\x84@\\x97\\x81\\x99\\x81\\x87\\x99\\x81\\x97\\x88@",
+            ... "n@\\x85\\x95\\x83\\x96\\x84\\x85\\x84@\\x89\\x95@\\x83\\x97"
+            ... "\\xf0\\xf3\\xf7K")))
             >>> list(result) == [
             ...   ({'quotedepth': 1, 'type': PARAGRAPH},
             ...    u'This is a quoted paragraph encoded in cp037.')]
