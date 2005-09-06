@@ -135,6 +135,10 @@ class FormatFlowedDecoder:
         displayed wrapped. Chunks of type FIXED should be displayed 
         unwrapped.
         
+        
+        Examples
+        --------
+        
         Here is a simple example:
         
             >>> CRLF = '\\r\\n'
@@ -168,6 +172,10 @@ class FormatFlowedDecoder:
             ...   ({'quotedepth': 0, 'type': FIXED}, u"Lewis Carroll")
             ... ]
             True
+        
+            
+        Improperly closed paragraphs
+        ----------------------------
         
         The decoder can deal with various cases of improperly format=flowed
         messages. Paragraphs normally end with a fixed line, but the following
@@ -207,6 +215,10 @@ class FormatFlowedDecoder:
             ...   ({'quotedepth': 0, 'type': PARAGRAPH},
             ...    u"A paragraph with flow space. ")]
             True
+            
+            
+        Decoder options
+        ---------------
             
         The delete_space attribute of the FormatFlowedDecoder class can be used
         to control wether or not the trailing space on flowed lines should be
@@ -417,9 +429,17 @@ class FormatFlowedEncoder:
         quotedepth (default: 0)
           The quote depth of the chunk.
           
-        Some examples:
+          
+        Examples
+        --------
+          
+        The encoder has to deal with three types of text chunks. To illustrate,
+        we create a encoder instance geared:
         
             >>> encoder = FormatFlowedEncoder(width=45)
+            
+        We can then use this encoder to encode some examples of these different
+        types:
             
         - fixed lines:
         
@@ -467,6 +487,10 @@ class FormatFlowedEncoder:
             >>> encoder.encodeChunk(u'foobar', SIGNATURE_SEPARATOR)
             '-- \\r\\n'
             
+            
+        Encoder options
+        ---------------
+            
         The encoding can be influenced by several instance attributes; the
         width attribute was used for the paragraph demonstrations. Others
         include 'extra_space', 'character_set' and 'spacestuff_quoted':
@@ -499,6 +523,10 @@ class FormatFlowedEncoder:
             >>> encoder.encodeChunk(u'Look Ma! No space!', quotedepth=1)
             '>Look Ma! No space!\\r\\n'
             
+            
+        RFC 2822 compliance
+        -------------------
+        
         Note that RFC 2822 requires that generated lines never exceed the
         hard limit of 998 characters without the CRLF at the end. The encoder 
         has to enforce this by chopping the lines up into pieces not exceeding
