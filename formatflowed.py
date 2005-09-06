@@ -22,7 +22,8 @@ __all__ = [
     'SIGNATURE_SEPARATOR',
     'FormatFlowedDecoder', 
     'FormatFlowedEncoder',
-    'decode', 
+    'decode',
+    'encode',
     'convertToWrapped'
 ]
 
@@ -402,7 +403,14 @@ class FormatFlowedEncoder:
             >>> encoder._spacestuff(u'So forcing it is fine', True)
             u' So forcing it is fine'
             
+        Note that empty lines can never be spacestuffed:
+        
+            >>> encoder._spacestuff(u'')
+            u''
+            
         """
+        if not line:
+            return line
         # Although the RFC doesn't say so explicitly, in practice 'From' only
         # needs escaping when (1) not quoted and (2) actually encoded as
         # 'From' (so independent of the unicode sequence u'From').
@@ -413,6 +421,60 @@ class FormatFlowedEncoder:
         return line
         
     # -- Public API ----------------------------------------------------
+    
+    def encode(self, chunks):
+        """Encode chunks of text to format=flowed
+        
+        chunks
+          An iterable sequence of (information, text) tuples, where information
+          is a dictionary with 'type' and 'quotedepth' keys. The 'type' value
+          is one of PARAGRAPH, FIXED or SIGNATURE-SEPARATOR, and the
+          'quotedepth' value a positive integer indicating the quoting depth.
+          text should be the unicode text to be encoded.
+          
+        Example
+        -------
+        
+        To illustrate, an example:
+        
+            >>> chunks = (
+            ...   ({'quotedepth': 2, 'type': PARAGRAPH}, 
+            ...     u"`Take some more tea,' the March Hare said to Alice, "
+            ...     u"very earnestly."),
+            ...   ({'quotedepth': 1, 'type': FIXED}, u""),
+            ...   ({'quotedepth': 1, 'type': PARAGRAPH}, 
+            ...    u"`I've had nothing yet,' Alice replied in an offended "
+            ...    u"tone, `so I can't take more.'"),
+            ...   ({'quotedepth': 0, 'type': FIXED}, u""),
+            ...   ({'quotedepth': 0, 'type': PARAGRAPH}, 
+            ...    u"`You mean you can't take less,' said the Hatter: `it's "
+            ...    u"very easy to take more than nothing.'"),
+            ...   ({'quotedepth': 0, 'type': FIXED}, u""),
+            ...   ({'quotedepth': 0, 'type': SIGNATURE_SEPARATOR}, u"-- "),
+            ...   ({'quotedepth': 0, 'type': PARAGRAPH}, u"Carol Lewis"),
+            ... )
+            >>> result = FormatFlowedEncoder(width=45).encode(chunks)
+            >>> result.split('\\r\\n') == [
+            ...   ">> `Take some more tea,' the March Hare said ",
+            ...   ">> to Alice, very earnestly.",
+            ...   ">",
+            ...   "> `I've had nothing yet,' Alice replied in ",
+            ...   "> an offended tone, `so I can't take more.'",
+            ...   "",
+            ...   "`You mean you can't take less,' said the ",
+            ...   "Hatter: `it's very easy to take more than ",
+            ...   "nothing.'",
+            ...   "",
+            ...   "-- ",
+            ...   "Carol Lewis",
+            ...   ""]
+            True
+
+        """
+        encoded = []
+        for info, text in chunks:
+            encoded.append(self.encodeChunk(text, **info))
+        return ''.join(encoded)
     
     def encodeChunk(self, chunk, type=PARAGRAPH, quotedepth=0):
         """Encode a chunk of text to format=flowed
@@ -598,6 +660,16 @@ def decode(flowed, **kwargs):
     """
     decoder = FormatFlowedDecoder(**kwargs)
     return decoder.decode(flowed)
+
+def encode(chunks, **kwargs):
+    """Convert chunks of text to format=flowed
+    
+    See the FormatFlowedEncoder.encode docstring for more information. All
+    keyword arguments are passed to the FormatFlowedEncoder instance.
+    
+    """
+    encoder = FormatFlowedEncoder(**kwargs)
+    return encoder.encode(chunks)
 
 def convertToWrapped(flowed, width=78, quote='>', newline='\n',
                      encoding='ascii', wrap_fixed=True, **kwargs):
