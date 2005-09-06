@@ -13,6 +13,7 @@ mimetype text.
 
 __revision_id__ = '$Id$'
 
+import re
 import textwrap
 
 __all__ = [
@@ -20,6 +21,7 @@ __all__ = [
     'FIXED',
     'SIGNATURE_SEPARATOR',
     'FormatFlowedDecoder', 
+    'FormatFlowedEncoder',
     'decode', 
     'convertToWrapped'
 ]
@@ -280,8 +282,283 @@ class FormatFlowedDecoder:
         if para:
             # exception case: last line was a flowed line
             yield (pinfo, para)
+    
+
+class _FlowedTextWrapper(textwrap.TextWrapper):
+    """Custom text wrapper for flowed text
+    
+    When not using extra spaces, only break on spaces; when we are using
+    extra spaces, don't swallow whitespace at the start and end of lines, but
+    do break long words (as they can be reconstructed with DelSpace on).
+    
+    """
+    def __init__(self, width=78, extra_space=False):
+        textwrap.TextWrapper.__init__(self, width,
+                                      break_long_words=extra_space)
+        self.extra_space = extra_space
+        if not extra_space:
+            self.wordsep_re = re.compile(r'(\s+)')
             
+    def _handle_long_word(self, reversed_chunks, cur_line, cur_len, width):
+        # _handle_long_word taken from python 2.5 CVS speed optimisation
+        # Can be removed if this is used with python 2.5
+        space_left = max(width - cur_len, 1)
+        if self.break_long_words:
+            cur_line.append(reversed_chunks[-1][:space_left])
+            reversed_chunks[-1] = reversed_chunks[-1][space_left:]
+        elif not cur_line:
+            cur_line.append(reversed_chunks.pop())
+        
+    def _wrap(self, chunks):
+        # Simplified and customized version of textwrap.TextWrapper
+        # Based on textwrapper rev. 1.37 in python CVS, with speed optimisation
+        lines = []
+        chunks.reverse()
+        while chunks:
+            cur_line = []
+            cur_len = 0
+            width = self.width
+
+            # Don't strip space at the start of a line when using extra_space
+            # because spaces are significant there.
+            if chunks[-1].strip() == '' and lines and not self.extra_space:
+                del chunks[-1]
+
+            while chunks:
+                l = len(chunks[-1])
+                if cur_len + l <= width:
+                    cur_line.append(chunks.pop())
+                    cur_len += l
+                else:
+                    break
+
+            if chunks and len(chunks[-1]) > width:
+                self._handle_long_word(chunks, cur_line, cur_len, width)
+
+            # Don't drop space at end of line if using extra_space for
+            # marking flowed lines because otherwise there is no space between
+            # this line and the next when decoding the flowed text
+            if cur_line and cur_line[-1].strip() == '' and not self.extra_space:
+                del cur_line[-1]
+
+            if cur_line:
+                lines.append(''.join(cur_line))
+        return lines
+
+
+class FormatFlowedEncoder:
+    """Object to generate format=flowed text
+    
+    The following attributes influence the flowed formatting of text:
+      extra_space (default: False)
+        Use an extra space to create flowed lines; this requires that the
+        DelSpace flag will be set true on the Content-Type mime header. Use
+        this flag on texts that have little or no spaces to break on.
+      character_set (default: us-ascii)
+        Encode the output to this character set.
+      spacestuff_quoted (default: True)
+        Always spacestuff quoted chunks, i.e. place a space between the quote
+        markers and the text.
+      width (default: 78)
+        The maximum line width generated for flowed paragraphs; fixed lines
+        can still exceed this width. This value does not include the CRLF
+        line endings.
+        
+    """
+    def __init__(self, extra_space=False, character_set='us-ascii',
+                 spacestuff_quoted=True, width=78):
+        self.extra_space = extra_space
+        self.character_set = character_set
+        self.spacestuff_quoted = spacestuff_quoted
+        self.width = width
+        
+    def _spacestuff(self, line, force=False):
+        """Prepend a space to lines starting with ' ', '>' or 'From'
+        
+        Returns the altered line. Set 'force' to True to skip the tests and
+        always prepend the space regardless:
+        
+            >>> encoder = FormatFlowedEncoder()
+            >>> encoder._spacestuff(u' leading space needs to be preserved')
+            u'  leading space needs to be preserved'
+            >>> encoder._spacestuff(u'> can be confused for a quotemark')
+            u' > can be confused for a quotemark'
+            >>> encoder._spacestuff(u'From is often escaped by MTAs')
+            u' From is often escaped by MTAs'
+            >>> encoder._spacestuff(u'Padding is considered harmless')
+            u'Padding is considered harmless'
+            >>> encoder._spacestuff(u'So forcing it is fine', True)
+            u' So forcing it is fine'
             
+        """
+        # Although the RFC doesn't say so explicitly, in practice 'From' only
+        # needs escaping when (1) not quoted and (2) actually encoded as
+        # 'From' (so independent of the unicode sequence u'From').
+        # For simplicity's sake, we spacestuff it any time a line starts with 
+        # it before adding quotemarks and encoding the line.
+        if force or line[0] in (' ', '>') or line.startswith('From'):
+            return u' ' + line
+        return line
+        
+    # -- Public API ----------------------------------------------------
+    
+    def encodeChunk(self, chunk, type=PARAGRAPH, quotedepth=0):
+        """Encode a chunk of text to format=flowed
+        
+        The chunk is encoded to format=flowed text, controlled by the 
+        following arguments.
+        chunk
+          The unicode text to be encoded. Newlines are considered to be
+          whitespace and will be converted to spaces.
+        type (default: PARAGRAPH)
+          Chunk type; one of PARAGRAPH, FIXED or SIGNATURE_SEPARATOR. When
+          called with type SIGNATURE_SEPARATOR the chunk is ignored and '-- '
+          is written out.
+        quotedepth (default: 0)
+          The quote depth of the chunk.
+          
+        Some examples:
+        
+            >>> encoder = FormatFlowedEncoder(width=45)
+            
+        - fixed lines:
+        
+            >>> encoder.encodeChunk(u'A fixed line remains unaltered', FIXED)
+            'A fixed line remains unaltered\\r\\n'
+            >>> encoder.encodeChunk(u'Although quoting is prepended', FIXED, 2)
+            '>> Although quoting is prepended\\r\\n'
+            >>> encoder.encodeChunk(u'Trailing spaces are removed  ', FIXED)
+            'Trailing spaces are removed\\r\\n'
+            >>> encoder.encodeChunk(u'> and special first chars are fluffed',
+            ...                     FIXED)
+            ' > and special first chars are fluffed\\r\\n'
+            
+        - a paragraph (the default type):
+        
+            >>> result = encoder.encodeChunk(
+            ...   u"`Take some more tea,' the March Hare said to Alice, "
+            ...   u"very earnestly.")
+            >>> result == ("`Take some more tea,' the March Hare said \\r\\n"
+            ...            "to Alice, very earnestly.\\r\\n")
+            True
+            >>> result = encoder.encodeChunk(
+            ...   u"`I've had nothing yet,' Alice replied in an offended "
+            ...   u"tone, `so I can't take more.'", PARAGRAPH, 1)
+            >>> result == ("> `I've had nothing yet,' Alice replied in \\r\\n"
+            ...            "> an offended tone, `so I can't take more.'\\r\\n")
+            True
+            >>> result = encoder.encodeChunk(
+            ...   u'The   wrapping   deals   quite   well  with > eratic '
+            ...   u'spacing and space fluffs characters where needed.')
+            >>> result == ("The   wrapping   deals   quite   well  with \\r\\n"
+            ...            " > eratic spacing and space fluffs \\r\\n"
+            ...            "characters where needed.\\r\\n")
+            True
+        
+        - signature separators:
+        
+            >>> encoder.encodeChunk(u'-- ', SIGNATURE_SEPARATOR)
+            '-- \\r\\n'
+            >>> encoder.encodeChunk(u'-- ', SIGNATURE_SEPARATOR, 3)
+            '>>> -- \\r\\n'
+            
+          Note that the actual chunk value is ignored for this type:
+        
+            >>> encoder.encodeChunk(u'foobar', SIGNATURE_SEPARATOR)
+            '-- \\r\\n'
+            
+        The encoding can be influenced by several instance attributes; the
+        width attribute was used for the paragraph demonstrations. Others
+        include 'extra_space', 'character_set' and 'spacestuff_quoted':
+        
+        - extra_space generates extra spaces on flowed lines so flowed lines
+          can be broken on something other than whitespace:
+          
+            >>> encoder = FormatFlowedEncoder(extra_space=True, width=45)
+            >>> result = encoder.encodeChunk(
+            ...   u'This is useful for texts with many word-breaks or few '
+            ...   u'spaces')
+            >>> result == ("This is useful for texts with many word- \\r\\n"
+            ...            "breaks or few spaces\\r\\n")
+            True
+            
+        - character_set controls the output encoding:
+        
+            >>> encoder = FormatFlowedEncoder(character_set='cp037')
+            >>> result = encoder.encodeChunk(u'Can you read me now?',
+            ...                              quotedepth=1)
+            >>> result == ('n@\\xc3\\x81\\x95@\\xa8\\x96\\xa4@\\x99\\x85\\x81'
+            ...            '\\x84@\\x94\\x85@\\x95\x96\\xa6o\\r\\n')
+            True
+            
+        - spacestuff_quoted causes quoted lines to be spacestuffed by default;
+          this makes for slightly more readable quoted text output. It is on
+          by default, but can be switched off:
+          
+            >>> encoder = FormatFlowedEncoder(spacestuff_quoted=False)
+            >>> encoder.encodeChunk(u'Look Ma! No space!', quotedepth=1)
+            '>Look Ma! No space!\\r\\n'
+            
+        Note that RFC 2822 requires that generated lines never exceed the
+        hard limit of 998 characters without the CRLF at the end. The encoder 
+        has to enforce this by chopping the lines up into pieces not exceeding
+        that length:
+        
+            >>> encoder = FormatFlowedEncoder()
+            >>> result = encoder.encodeChunk(u'-' * 1500, FIXED)
+            >>> result = result.split('\\r\\n')
+            >>> len(result)
+            3
+            >>> len(result[0])
+            998
+            >>> result == ['-' * 998, '-' * 502, '']
+            True
+            
+        """
+        # cleanup: replace newlines with spaces and remove trailing spaces
+        chunk = ' '.join(chunk.rstrip().splitlines())
+        
+        # Pre-encode quoting
+        quotemarker = u'>' * quotedepth
+        quotemarker = quotemarker.encode(self.character_set)
+        forcestuff = self.spacestuff_quoted and quotedepth > 0
+
+        if type == SIGNATURE_SEPARATOR:
+            chunk = u'-- '
+            
+        if type == PARAGRAPH:
+            # Maximum width is reduced by stuffing and quotemarkers
+            width = self.width - len(quotemarker) - 2
+            if width <= 0:
+                raise ValueError('Not enough width for both quoting and text')
+            wrapper = _FlowedTextWrapper(width, self.extra_space)
+            chunk = wrapper.wrap(chunk)
+        else:
+            chunk = [chunk]
+        
+        lines = []
+        for line in chunk:
+            # add space to flowed lines (all but last); this is an extra space
+            # if the wrapping of paragraphs included spaces at the end during
+            # wrapping.
+            if line != chunk[-1]:
+                line += ' '
+            line = self._spacestuff(line, forcestuff)
+            line = quotemarker + line.encode(self.character_set)
+            
+            # Enforce a hard limit of 998 characters per line (excluding CRLF)
+            # Unfortunately we can only enforce this *after* encoding,
+            # otherwise we could flow lines that are too long.
+            while len(line) > 998:
+                lines.append(line[:998])
+                line = line[998:]
+                
+            lines.append(line)
+            
+        lines.append('') # ensure last ending CRLF
+        return '\r\n'.join(lines)
+    
+    
 # -- Convenience functions ---------------------------------------------
 
 def decode(flowed, **kwargs):
