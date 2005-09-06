@@ -567,8 +567,8 @@ class FormatFlowedEncoder:
         lines = []
         for line in chunk:
             # add space to flowed lines (all but last); this is an extra space
-            # if the wrapping of paragraphs included spaces at the end during
-            # wrapping.
+            # if the wrapping of paragraphs included spaces at the end of the
+            # lines.
             if line != chunk[-1]:
                 line += ' '
             line = self._spacestuff(line, forcestuff)
