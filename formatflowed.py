@@ -698,7 +698,7 @@ def convertToWrapped(flowed, width=78, quote='>', newline='\n',
       Here is a simple example:
     
         >>> CRLF = '\\r\\n'
-        >>> print convertToWrapped(CRLF.join((
+        >>> result = convertToWrapped(CRLF.join((
         ... ">> `Take some more tea,' the March Hare said to Alice, very ",
         ... ">> earnestly.",
         ... ">",
@@ -709,23 +709,21 @@ def convertToWrapped(flowed, width=78, quote='>', newline='\n',
         ... "easy to take more than nothing.'",
         ... "",
         ... "-- ",
-        ... "Lewis Caroll")), width=65)
-        >> `Take some more tea,' the March Hare said to Alice, very
-        >> earnestly.
-        > 
-        > `I've had nothing yet,' Alice replied in an offended tone, `so
-        > I can't take more.'
-        <BLANKLINE>
-        `You mean you can't take less,' said the Hatter: `it's very easy
-        to take more than nothing.'
-        <BLANKLINE>
-        -- 
-        Lewis Caroll
+        ... "Lewis Caroll")), width=60)
+        >>> result.split('\\n') == [
+        ...   ">> `Take some more tea,' the March Hare said to Alice, very",
+        ...   ">> earnestly.", 
+        ...   "> ",
+        ...   "> `I've had nothing yet,' Alice replied in an offended tone,",
+        ...   "> `so I can't take more.'",
+        ...   "",
+        ...   "`You mean you can't take less,' said the Hatter: `it's very",
+        ...   "easy to take more than nothing.'",
+        ...   "",
+        ...   "-- ",
+        ...   "Lewis Caroll"]
+        True
         
-    (Although not directly visible in this example, the output contains
-    a trailing space at the end of the empty quoted line and the signature
-    seperator).
-    
     """
     result = []
     for info, chunk in decode(flowed, **kwargs):
