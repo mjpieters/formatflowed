@@ -30,6 +30,10 @@ __all__ = [
 # Constants denoting the various text chunk types recognized by format=flowed
 PARAGRAPH, FIXED, SIGNATURE_SEPARATOR = range(3)
 
+
+# -- Public classes ----------------------------------------------------
+
+
 class FormatFlowedDecoder:
     """Object for converting format=flowed text to other formats
     
@@ -295,68 +299,6 @@ class FormatFlowedDecoder:
         if para:
             # exception case: last line was a flowed line
             yield (pinfo, para)
-    
-
-class _FlowedTextWrapper(textwrap.TextWrapper):
-    """Custom text wrapper for flowed text
-    
-    When not using extra spaces, only break on spaces; when we are using
-    extra spaces, don't swallow whitespace at the start and end of lines, but
-    do break long words (as they can be reconstructed with DelSpace on).
-    
-    """
-    def __init__(self, width=78, extra_space=False):
-        textwrap.TextWrapper.__init__(self, width,
-                                      break_long_words=extra_space)
-        self.extra_space = extra_space
-        if not extra_space:
-            self.wordsep_re = re.compile(r'(\s+)')
-            
-    def _handle_long_word(self, reversed_chunks, cur_line, cur_len, width):
-        # _handle_long_word taken from python 2.5 CVS speed optimisation
-        # Can be removed if this is used with python 2.5
-        space_left = max(width - cur_len, 1)
-        if self.break_long_words:
-            cur_line.append(reversed_chunks[-1][:space_left])
-            reversed_chunks[-1] = reversed_chunks[-1][space_left:]
-        elif not cur_line:
-            cur_line.append(reversed_chunks.pop())
-        
-    def _wrap(self, chunks):
-        # Simplified and customized version of textwrap.TextWrapper
-        # Based on textwrapper rev. 1.37 in python CVS, with speed optimisation
-        lines = []
-        chunks.reverse()
-        while chunks:
-            cur_line = []
-            cur_len = 0
-            width = self.width
-
-            # Don't strip space at the start of a line when using extra_space
-            # because spaces are significant there.
-            if chunks[-1].strip() == '' and lines and not self.extra_space:
-                del chunks[-1]
-
-            while chunks:
-                l = len(chunks[-1])
-                if cur_len + l <= width:
-                    cur_line.append(chunks.pop())
-                    cur_len += l
-                else:
-                    break
-
-            if chunks and len(chunks[-1]) > width:
-                self._handle_long_word(chunks, cur_line, cur_len, width)
-
-            # Don't drop space at end of line if using extra_space for
-            # marking flowed lines because otherwise there is no space between
-            # this line and the next when decoding the flowed text
-            if cur_line and cur_line[-1].strip() == '' and not self.extra_space:
-                del cur_line[-1]
-
-            if cur_line:
-                lines.append(''.join(cur_line))
-        return lines
 
 
 class FormatFlowedEncoder:
@@ -651,6 +593,7 @@ class FormatFlowedEncoder:
     
 # -- Convenience functions ---------------------------------------------
 
+
 def decode(flowed, **kwargs):
     """Convert format=flowed text
     
@@ -737,6 +680,71 @@ def convertToWrapped(flowed, width=78, quote=u'>', wrap_fixed=True, **kwargs):
                                         initial_indent=quotemarker,
                                         subsequent_indent=quotemarker))
     return u'\n'.join(result)
+
+
+# -- Private classes and methods ---------------------------------------
+
+
+class _FlowedTextWrapper(textwrap.TextWrapper):
+    """Custom text wrapper for flowed text
+    
+    When not using extra spaces, only break on spaces; when we are using
+    extra spaces, don't swallow whitespace at the start and end of lines, but
+    do break long words (as they can be reconstructed with DelSpace on).
+    
+    """
+    def __init__(self, width=78, extra_space=False):
+        textwrap.TextWrapper.__init__(self, width,
+                                      break_long_words=extra_space)
+        self.extra_space = extra_space
+        if not extra_space:
+            self.wordsep_re = re.compile(r'(\s+)')
+            
+    def _handle_long_word(self, reversed_chunks, cur_line, cur_len, width):
+        # _handle_long_word taken from python 2.5 CVS speed optimisation
+        # Can be removed if this is used with python 2.5
+        space_left = max(width - cur_len, 1)
+        if self.break_long_words:
+            cur_line.append(reversed_chunks[-1][:space_left])
+            reversed_chunks[-1] = reversed_chunks[-1][space_left:]
+        elif not cur_line:
+            cur_line.append(reversed_chunks.pop())
+        
+    def _wrap(self, chunks):
+        # Simplified and customized version of textwrap.TextWrapper
+        # Based on textwrapper rev. 1.37 in python CVS, with speed optimisation
+        lines = []
+        chunks.reverse()
+        while chunks:
+            cur_line = []
+            cur_len = 0
+            width = self.width
+
+            # Don't strip space at the start of a line when using extra_space
+            # because spaces are significant there.
+            if chunks[-1].strip() == '' and lines and not self.extra_space:
+                del chunks[-1]
+
+            while chunks:
+                l = len(chunks[-1])
+                if cur_len + l <= width:
+                    cur_line.append(chunks.pop())
+                    cur_len += l
+                else:
+                    break
+
+            if chunks and len(chunks[-1]) > width:
+                self._handle_long_word(chunks, cur_line, cur_len, width)
+
+            # Don't drop space at end of line if using extra_space for
+            # marking flowed lines because otherwise there is no space between
+            # this line and the next when decoding the flowed text
+            if cur_line and cur_line[-1].strip() == '' and not self.extra_space:
+                del cur_line[-1]
+
+            if cur_line:
+                lines.append(''.join(cur_line))
+        return lines
     
 
 def _test(verbose=False):
