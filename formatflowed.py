@@ -671,8 +671,7 @@ def encode(chunks, **kwargs):
     encoder = FormatFlowedEncoder(**kwargs)
     return encoder.encode(chunks)
 
-def convertToWrapped(flowed, width=78, quote='>', newline='\n',
-                     encoding='ascii', wrap_fixed=True, **kwargs):
+def convertToWrapped(flowed, width=78, quote=u'>', wrap_fixed=True, **kwargs):
     """Covert flowed text to encoded and wrapped text
     
     Create text suitable for a proportional font, fixed with, plain text
@@ -681,14 +680,10 @@ def convertToWrapped(flowed, width=78, quote='>', newline='\n',
         The format=flowed formatted text to convert
       width (default: 78)
         The maximum line length at which to wrap paragraphs. 
-      quote (default: '>')
+      quote (default: u'>')
         Character sequence to use to mark quote depths; it is multiplied with
         the quotedepth to quote a line. If this sequence does not end in a
         space a space is added between the quotemars and the line.
-      newline (default: '\n')
-        Lines are joined with the newline character sequence.
-      encoding (default: ascii)
-        Text chunks from the decoded flowed text are encoded to this encoding
       wrap_fixed (default: True)
         If true, fixed text chunks are wrapped to the given  width as well,
         including hard word breaks if a word exceeds the line width
@@ -729,10 +724,9 @@ def convertToWrapped(flowed, width=78, quote='>', newline='\n',
     for info, chunk in decode(flowed, **kwargs):
         type = info['type']
         quotedepth = info['quotedepth']
-        chunk = chunk.encode(encoding)
-        quotemarker = quotedepth and quote * quotedepth or ''
-        if quotemarker and quote[-1] != ' ':
-            quotemarker += ' '
+        quotemarker = quotedepth and quote * quotedepth or u''
+        if quotemarker and quote[-1] != u' ':
+            quotemarker += u' '
         if type == FIXED and not wrap_fixed:
             result.append(quotemarker + chunk)
         elif not chunk or type == SIGNATURE_SEPARATOR:
@@ -742,7 +736,7 @@ def convertToWrapped(flowed, width=78, quote='>', newline='\n',
                                         replace_whitespace=False,
                                         initial_indent=quotemarker,
                                         subsequent_indent=quotemarker))
-    return newline.join(result)
+    return u'\n'.join(result)
     
 
 def _test(verbose=False):
