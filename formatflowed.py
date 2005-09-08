@@ -24,7 +24,8 @@ __all__ = [
     'FormatFlowedEncoder',
     'decode',
     'encode',
-    'convertToWrapped'
+    'convertToWrapped',
+    'convertToFlowed'
 ]
 
 # Constants denoting the various text chunk types recognized by format=flowed
@@ -681,7 +682,28 @@ def convertToWrapped(flowed, width=78, quote=u'>', wrap_fixed=True, **kwargs):
                                         subsequent_indent=quotemarker))
     return u'\n'.join(result)
 
-
+def convertToFlowed(text, quotechars=u'>|%', **kwargs):
+    """Convert plain text to format=flowed
+    
+    Attempt to interpret the plain text as paragraphs and fixed lines, 
+    creating a format=flowed encoded text. The paragraph detection is fairly 
+    simple and probably not suitable for real-world email.
+    
+    text
+      Unicode text to be converted. Paragraphs are detected based on
+      whitelines between them, making all lines with extra linespace at the
+      start fixed to preserve that whitespace.
+    quotechars (default: u'>|%')
+      A set of characters recognized as quote markers; used to detect quote
+      depth.
+    
+    Additional kwargs are passed on to FormatFlowedEncoder.
+    
+    """
+    encoder = FormatFlowedEncoder(**kwargs)
+    return encoder.encode(_parseFlowableChunks(text, quotechars))
+    
+    
 # -- Private classes and methods ---------------------------------------
 
 
@@ -747,6 +769,112 @@ class _FlowedTextWrapper(textwrap.TextWrapper):
         return lines
     
 
+def _parseFlowableChunks(text, quotechars='>%|'):
+    """Parse out encodeble chunks, determining chunk type
+    
+    First step is to remove and count quoting marks, determining the quotedepth
+    of the text. Then the type of the lines is detected.
+    
+    Paragraphs are determined by terminating lines; terminating lines are
+    changes in quoting (depth or quoting used, signatures or fixed lines (see 
+    below)
+    
+    Fixed lines are used for lines with nothing but whitespace and for lines 
+    with whitespace prepended (indented lines).
+    
+    Any line with only two dashes at the start and whitespace is a signature
+    seperator.
+    
+    Example code:
+    
+        >>> result = _parseToFlowed(u'\\n'.join((
+        ...     u'Normal text, as long as they are not delimited by empty ',
+        ...     u'lines will be considered paragraphs and will be parsed as ',
+        ...     u'such.',
+        ...     u'',
+        ...     u'> > Quoting will be detected as well, and as long as it is ',
+        ...     u'> > consistent text will be collected into one paragraph.',
+        ...     u'> Changes in depth trigger a new paragraph.',
+        ...     u'>      Leading whitespace makes for fixed lines.',
+        ...     u'Signature separators are dealt with accordingly:',
+        ...     u'-- '
+        ... )))
+        >>> result.next() == ({'type': PARAGRAPH, 'quotedepth': 0},
+        ...     u'Normal text, as long as they are not delimited by empty '
+        ...     u'lines will be considered paragraphs and will be parsed as '
+        ...     u'such.')
+        True
+        >>> result.next() == ({'type': FIXED, 'quotedepth': 0}, u'')
+        True
+        >>> result.next() == ({'type': PARAGRAPH, 'quotedepth': 2},
+        ...     u'Quoting will be detected as well, and as long as it is '
+        ...     u'consistent text will be collected into one paragraph.')
+        True
+        >>> result.next() == ({'type': PARAGRAPH, 'quotedepth': 1},
+        ...     u'Changes in depth trigger a new paragraph.')
+        True
+        >>> result.next() == ({'type': FIXED, 'quotedepth': 1},
+        ...     u'     Leading whitespace makes for fixed lines.')
+        True
+        >>> result.next() == ({'type': PARAGRAPH, 'quotedepth': 0},
+        ...     u'Signature separators are dealt with accordingly:')
+        True
+        >>> result.next() == ({'type': SIGNATURE_SEPARATOR, 'quotedepth': 0},
+        ...     u'-- ')
+        True
+        >>> result.next()
+        Traceback (most recent call last):
+            ...
+        StopIteration
+        
+    """
+    # Match quotemarks with limited whitespace around them
+    qm_match = re.compile('(^\s{0,2}([%s]\s?)+)' % quotechars).match
+    # Find all quotemarks
+    qm_findall = re.compile('[%s]' % quotechars).findall
+    
+    quotedepth = 0
+    quotemarks = ''
+    para = u''
+    
+    for line in text.splitlines():
+        has_quotes = qm_match(line)
+        same_quotes = quotemarks and line.startswith(quotemarks)
+        if (has_quotes and not same_quotes) or (not has_quotes and quotedepth):
+            # Change in quoting
+            if para:
+                yield {'type': PARAGRAPH, 'quotedepth': quotedepth}, para
+                para = u''
+            
+            quotemarks = has_quotes and has_quotes.group(0) or u''
+            quotedepth = len(qm_findall(quotemarks))
+            
+        line = line[len(quotemarks):]
+        
+        if line.rstrip() == u'--':
+            # signature separator
+            if para:
+                yield {'type': PARAGRAPH, 'quotedepth': quotedepth}, para
+                para = u''
+                
+            yield {'type': SIGNATURE_SEPARATOR, 'quotedepth': quotedepth}, line
+            continue
+        
+        if line.strip() == u'' or line.lstrip() != line:
+            # Fixed line
+            if para:
+                yield {'type': PARAGRAPH, 'quotedepth': quotedepth}, para
+                para = u''
+                
+            yield {'type': FIXED, 'quotedepth': quotedepth}, line
+            continue
+        
+        # Paragraph line; store and loop to next line
+        para += line
+        
+    if para:
+        yield {'type': PARAGRAPH, 'quotedepth': quotedepth}, para
+    
 def _test(verbose=False):
     import doctest
     return doctest.testmod(verbose=verbose)
