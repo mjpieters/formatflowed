@@ -787,7 +787,7 @@ def _parseFlowableChunks(text, quotechars='>%|'):
     
     Example code:
     
-        >>> result = _parseToFlowed(u'\\n'.join((
+        >>> result = _parseFlowableChunks(u'\\n'.join((
         ...     u'Normal text, as long as they are not delimited by empty ',
         ...     u'lines will be considered paragraphs and will be parsed as ',
         ...     u'such.',
