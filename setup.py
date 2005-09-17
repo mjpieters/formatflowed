@@ -14,11 +14,24 @@ from distutils.core import setup
 
 setup(
     name='formatflowed',
-    version='0.9.0',
+    version='1.0.0',
     description='RFC 3676 format=flowed text processing',
+    long_description='''\
+The formatflowed.py python library provides en- and decoding functionality for 
+`RFC 2646`_ and `RFC 3676`_ text, also called format=flowed text. The 
+development of this library was generously sponsored by `Logicalware`_.
+
+.. _RFC 2646: http://www.faqs.org/rfcs/rfc2646.html
+.. _RFC 3676: http://www.faqs.org/rfcs/rfc3676.html
+.. _Logicalware: http://www.logicalware.com/''',
+    license='Python Software Foundation License',
+    platforms='OS Independent',
     author='Martijn Pieters',
     author_email='mj@zopatista.com',
     url='http://www.zopatista.com/projects/formatflowed',
+    download_url='http://www.zopatista.com/projects/formatflowed/'
+                 'releases/1.0.0/formatflowed-1.0.0.tar.gz',
+    keywords=('email', 'mime', 'format', 'flowed', 'rfc2646', 'rfc3676'),
     py_modules=['formatflowed'],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
