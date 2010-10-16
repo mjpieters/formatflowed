@@ -329,7 +329,7 @@ class FormatFlowedEncoder:
         
     """
     def __init__(self, extra_space=False, character_set='us-ascii',
-                 spacestuff_quoted=True, width=78):
+                 error_handling='strict', spacestuff_quoted=True, width=78):
         self.extra_space = extra_space
         self.character_set = character_set
         self.error_handling = error_handling
