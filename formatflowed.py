@@ -5,7 +5,7 @@ mimetype text.
 
 """
 
-# Copyright (C) 2005 Martijn Pieters
+# Copyright (C) 2005-2010 Martijn Pieters
 # Written by Martijn Pieters <mj@zopatista.com>
 # Development was sponsored by Logicalware (http://www.logicalware.org/)
 # Licensed as Open Source under the same terms as the Python 2.4.1 license,
