@@ -46,12 +46,16 @@ class FormatFlowedDecoder:
         parameter
       character_set (default: us-ascii)
         The encoding of text passed in. Text is decoded to unicode using this
-        encoding, using the default error handing scheme. 
+        encoding, using the error handling scheme specified below. 
+      error_handling (default: strict)
+        The error handling scheme used when decoding the text.
         
     """
-    def __init__(self, delete_space=False, character_set='us-ascii'):
+    def __init__(self, delete_space=False, character_set='us-ascii',
+                 error_handling='strict'):
         self.delete_space = delete_space
         self.character_set = character_set
+        self.error_handling = error_handling
         
     # -- Private methods -----------------------------------------------
     
@@ -259,7 +263,7 @@ class FormatFlowedDecoder:
         para = u''
         pinfo = {'type': PARAGRAPH}
         for line in flowed.split('\r\n'):
-            line = line.decode(self.character_set)
+            line = line.decode(self.character_set, self.error_handling)
             quotedepth, line = self._stripquotes(line)
             line = self._stripstuffing(line)
             if line == '-- ':
@@ -312,6 +316,9 @@ class FormatFlowedEncoder:
         this flag on texts that have little or no spaces to break on.
       character_set (default: us-ascii)
         Encode the output to this character set.
+      error_handling (default: strict)
+        The error handling scheme used when encoding the text.
+        
       spacestuff_quoted (default: True)
         Always spacestuff quoted chunks, i.e. place a space between the quote
         markers and the text.
@@ -325,6 +332,7 @@ class FormatFlowedEncoder:
                  spacestuff_quoted=True, width=78):
         self.extra_space = extra_space
         self.character_set = character_set
+        self.error_handling = error_handling
         self.spacestuff_quoted = spacestuff_quoted
         self.width = width
         
@@ -577,7 +585,8 @@ class FormatFlowedEncoder:
             if line != chunk[-1]:
                 line += ' '
             line = self._spacestuff(line, forcestuff)
-            line = quotemarker + line.encode(self.character_set)
+            line = quotemarker + line.encode(self.character_set,
+                                             self.error_handling)
             
             # Enforce a hard limit of 998 characters per line (excluding CRLF)
             # Unfortunately we can only enforce this *after* encoding,
