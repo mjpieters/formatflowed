@@ -7,7 +7,7 @@
 # Licensed as Open Source under the same terms as the Python 2.4.1 license,
 # as available at http://www.python.org/2.4.1/license.html
 
-version='1.1.0'
+version='1.1.1'
 
 import os
 from setuptools import setup
