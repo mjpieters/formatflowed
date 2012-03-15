@@ -5,13 +5,12 @@ mimetype text.
 
 """
 
-# Copyright (C) 2005-2010 Martijn Pieters
+# Copyright (C) 2005-2012 Martijn Pieters
 # Written by Martijn Pieters <mj@zopatista.com>
 # Development was sponsored by Logicalware (http://www.logicalware.org/)
 # Licensed as Open Source under the same terms as the Python 2.4.1 license,
 # as available at http://www.python.org/2.4.1/license.html
 
-__revision_id__ = '$Id$'
 
 import re
 import textwrap
@@ -884,10 +883,17 @@ def _parseFlowableChunks(text, quotechars='>%|'):
     if para:
         yield {'type': PARAGRAPH, 'quotedepth': quotedepth}, para
     
+def additional_tests():
+    # Run tests with python setup.py test (req. python 2.4)
+    import doctest
+    import sys
+    return doctest.DocTestSuite(sys.modules[__name__])
+
 def _test(verbose=False):
     import doctest
     return doctest.testmod(verbose=verbose)
 
 if __name__ == '__main__':
+    # Run tests with python formatflowed.py
     import sys
     _test('-v' in sys.argv)

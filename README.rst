@@ -10,28 +10,33 @@ The formatflowed.py python library provides en- and decoding functionality for
 development of this library was generously sponsored by `Logicalware`_, and
 was written by `Martijn Pieters <mj@zopatista.com>`_.
 
-The latest version can be downloaded from the `project homepage`_.
+The latest version can be downloaded from the `pypi page`_; the code repository 
+is hosted `GitHub`_.
 
 .. _RFC 2646: http://www.faqs.org/rfcs/rfc2646.html
 .. _RFC 3676: http://www.faqs.org/rfcs/rfc3676.html
 .. _Logicalware: http://www.logicalware.com/
-.. _project homepage: http://www.zopatista.com/projects/formatflowed
+.. _pypi page: http://pypi.python.org/pypi/formatflowed
+.. _GitHub: https://github.com/mjpieters/formatflowed
 
 
 Requirements
 ------------
 
-formatflowed.py has been tested with python 2.3 and python 2.4. When python
-has been installed from a Linux distribution package, please make sure
-distutils is installed. This is usually part of the python-dev package.
+formatflowed.py has been tested with python 2.3 and up. Installation requires
+either the setuptools or distutils libraries.
 
 
 Installation
 ------------
 
-Use the standard distutils installation script provided::
+Use the standard setuptools installation script provided::
 
  python setup.py install
+
+or install the package as an egg::
+
+ pip install formatflowed 
  
 
 Usage

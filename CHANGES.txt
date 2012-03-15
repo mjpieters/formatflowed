@@ -1,0 +1,24 @@
+Change History
+==============
+
+1.1.0 (Unreleased)
+------------------
+
+* Made unicode exception handling configurable.
+  [mj]
+
+* Updated project URLs, and cleaned up setup.py. The project is now hosted on
+  GitHub.
+  [mj]
+
+1.0.0 (2005-09-17)
+------------------
+
+* Added release metadata and a README.
+  [mj]
+
+0.9.0 (2005-09-11)
+------------------
+
+* Initial release.
+  [mj]
