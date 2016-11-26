@@ -635,7 +635,7 @@ def convertToWrapped(flowed, width=78, quote=u'>', wrap_fixed=True, **kwargs):
       quote (default: u'>')
         Character sequence to use to mark quote depths; it is multiplied with
         the quotedepth to quote a line. If this sequence does not end in a
-        space a space is added between the quotemars and the line.
+        space a space is added between the quotemarks and the line.
       wrap_fixed (default: True)
         If true, fixed text chunks are wrapped to the given  width as well,
         including hard word breaks if a word exceeds the line width
