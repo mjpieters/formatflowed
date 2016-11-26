@@ -11,7 +11,7 @@ import os
 from setuptools import setup
 
 
-version = '1.1.1'
+version = '2.0.0'
 
 install_requires = [
     'setuptools',

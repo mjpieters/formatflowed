@@ -807,30 +807,30 @@ def _parseFlowableChunks(text, quotechars='>%|'):
         ...     u'Signature separators are dealt with accordingly:',
         ...     u'-- '
         ... )))
-        >>> result.next() == ({'type': PARAGRAPH, 'quotedepth': 0},
+        >>> next(result) == ({'type': PARAGRAPH, 'quotedepth': 0},
         ...     u'Normal text, as long as they are not delimited by empty '
         ...     u'lines will be considered paragraphs and will be parsed as '
         ...     u'such.')
         True
-        >>> result.next() == ({'type': FIXED, 'quotedepth': 0}, u'')
+        >>> next(result) == ({'type': FIXED, 'quotedepth': 0}, u'')
         True
-        >>> result.next() == ({'type': PARAGRAPH, 'quotedepth': 2},
+        >>> next(result) == ({'type': PARAGRAPH, 'quotedepth': 2},
         ...     u'Quoting will be detected as well, and as long as it is '
         ...     u'consistent text will be collected into one paragraph.')
         True
-        >>> result.next() == ({'type': PARAGRAPH, 'quotedepth': 1},
+        >>> next(result) == ({'type': PARAGRAPH, 'quotedepth': 1},
         ...     u'Changes in depth trigger a new paragraph.')
         True
-        >>> result.next() == ({'type': FIXED, 'quotedepth': 1},
+        >>> next(result) == ({'type': FIXED, 'quotedepth': 1},
         ...     u'     Leading whitespace makes for fixed lines.')
         True
-        >>> result.next() == ({'type': PARAGRAPH, 'quotedepth': 0},
+        >>> next(result) == ({'type': PARAGRAPH, 'quotedepth': 0},
         ...     u'Signature separators are dealt with accordingly:')
         True
-        >>> result.next() == ({'type': SIGNATURE_SEPARATOR, 'quotedepth': 0},
+        >>> next(result) == ({'type': SIGNATURE_SEPARATOR, 'quotedepth': 0},
         ...     u'-- ')
         True
-        >>> result.next()
+        >>> next(result)
         Traceback (most recent call last):
             ...
         StopIteration
