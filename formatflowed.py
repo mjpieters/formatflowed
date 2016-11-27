@@ -777,7 +777,7 @@ class _FlowedTextWrapper(textwrap.TextWrapper):
         return lines
 
 
-def _parseFlowableChunks(text, quotechars='>%|'):
+def _parseFlowableChunks(text, quotechars=u'>|%'):
     """Parse out encodeble chunks, determining chunk type
 
     First step is to remove and count quoting marks, determining the quotedepth
@@ -837,12 +837,15 @@ def _parseFlowableChunks(text, quotechars='>%|'):
 
     """
     # Match quotemarks with limited whitespace around them
-    qm_match = re.compile('(^\s{0,2}([%s]\s?)+)' % quotechars).match
+    qm_match = re.compile(
+            u'(^\s{{0,2}}([{0}]\s?)+)'.format(re.escape(quotechars)),
+            flags=re.UNICODE).match
     # Find all quotemarks
-    qm_findall = re.compile('[%s]' % quotechars).findall
+    qm_findall = re.compile(
+        u'[{0}]'.format(quotechars), flags=re.UNICODE).findall
 
     quotedepth = 0
-    quotemarks = ''
+    quotemarks = u''
     para = u''
 
     for line in text.splitlines():
