@@ -7,17 +7,21 @@
 # Licensed as Open Source under the same terms as the Python 2.4.1 license,
 # as available at http://www.python.org/2.4.1/license.html
 
-version='1.1.1'
-
 import os
 from setuptools import setup
 
-install_requires=[
+
+version = '1.1.1'
+
+install_requires = [
     'setuptools',
 ]
 
+
 def read(*rnames):
-    return open(os.path.join(os.path.dirname(__file__), *rnames)).read()
+    with open(os.path.join(os.path.dirname(__file__), *rnames)) as f:
+        return f.read()
+
 
 setup(
     name='formatflowed',
