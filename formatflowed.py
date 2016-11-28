@@ -35,16 +35,16 @@ PARAGRAPH, FIXED, SIGNATURE_SEPARATOR = range(3)
 
 
 class FormatFlowedDecoder:
-    """Object for converting format=flowed text to other formats
+    """Object for converting a format=flowed bytestring to other formats
 
     The following instance attributes influence the interpretation of
-    format=flowed text:
+    format=flowed bytestring:
       delete_space (default: False)
         Delete the trailing space before the CRLF on flowed lines before
         interpreting the line on flowed input, corresponds to the DelSp mime
         parameter
       character_set (default: us-ascii)
-        The encoding of text passed in. Text is decoded to unicode using this
+        The text encoding for the data. Text is decoded to unicode using this
         encoding, using the error handling scheme specified below.
       error_handling (default: strict)
         The error handling scheme used when decoding the text.
@@ -64,16 +64,18 @@ class FormatFlowedDecoder:
         Returns the number of quotemarks stripped and the stripped line:
 
             >>> decoder = FormatFlowedDecoder()
-            >>> decoder._stripquotes(u'>>> quoted line')
-            (3, u' quoted line')
+            >>> decoder._stripquotes(u'>>> quoted line') == (
+            ...     3, u' quoted line')
+            True
 
         Non-quoted lines are returned unchanged:
 
-            >>> decoder._stripquotes(u'non-quoted line')
-            (0, u'non-quoted line')
+            >>> decoder._stripquotes(u'non-quoted line') == (
+            ...     0, u'non-quoted line')
+            True
 
         """
-        stripped = line.lstrip('>')
+        stripped = line.lstrip(u'>')
         return len(line) - len(stripped), stripped
 
     def _stripstuffing(self, line):
@@ -82,18 +84,21 @@ class FormatFlowedDecoder:
         Returns the stripped line:
 
             >>> decoder = FormatFlowedDecoder()
-            >>> decoder._stripstuffing(u' stuffed line')
-            u'stuffed line'
+            >>> decoder._stripstuffing(u' stuffed line') == (
+            ...     u'stuffed line')
+            True
 
         Non-stuffed lines are returned unchanged:
 
-            >>> decoder._stripstuffing(u'non-stuffed line')
-            u'non-stuffed line'
+            >>> decoder._stripstuffing(u'non-stuffed line') == (
+            ...     u'non-stuffed line')
+            True
 
         Additional spacing is preserved:
 
-            >>> decoder._stripstuffing(u'  extra leading space')
-            u' extra leading space'
+            >>> decoder._stripstuffing(u'  extra leading space') == (
+            ...     u' extra leading space')
+            True
 
         """
         if line.startswith(u' '):
@@ -107,19 +112,23 @@ class FormatFlowedDecoder:
         method returns the line unchanged:
 
             >>> decoder = FormatFlowedDecoder()
-            >>> decoder._stripflow(u'flowed line ')
-            u'flowed line '
+            >>> decoder._stripflow(u'flowed line ') == (
+            ...     u'flowed line ')
+            True
 
         But if the delete_space attribute has been set to True the flow space
         is removed:
 
             >>> decoder = FormatFlowedDecoder(delete_space=True)
-            >>> decoder._stripflow(u'flowed line ')
-            u'flowed line'
+            >>> decoder._stripflow(u'flowed line ') == (
+            ...     u'flowed line')
+            True
 
         Only one flow space is removed:
-        >>> decoder._stripflow(u'extra whitespace  ')
-        u'extra whitespace '
+
+            >>> decoder._stripflow(u'extra whitespace  ') == (
+            ...     u'extra whitespace ')
+            True
 
         """
         if self.delete_space and line.endswith(u' '):
@@ -131,7 +140,7 @@ class FormatFlowedDecoder:
     def decode(self, flowed):
         """Decode flowed text
 
-        Returns an iterable serving a sequence of (information, chunk)
+        Returns an iterable yielding a sequence of (information, chunk)
         tuples. information is a dictionary with the following fields:
           type
             One of PARAGRAPH, FIXED, SIGNATURE_SEPARATOR
@@ -150,20 +159,20 @@ class FormatFlowedDecoder:
 
         Here is a simple example:
 
-            >>> CRLF = '\\r\\n'
+            >>> CRLF = b'\\r\\n'
             >>> decoder = FormatFlowedDecoder()
             >>> result = decoder.decode(CRLF.join((
-            ... ">> `Take some more tea,' the March Hare said to Alice, very ",
-            ... ">> earnestly.",
-            ... ">",
-            ... "> `I've had nothing yet,' Alice replied in an offended ",
-            ... "> tone, `so I can't take more.'",
-            ... "",
-            ... "`You mean you can't take less,' said the Hatter: `it's very ",
-            ... "easy to take more than nothing.'",
-            ... "",
-            ... "-- ",
-            ... "Lewis Carroll")))
+            ... b">> `Take some more tea,' the March Hare said to Alice, ",
+            ... b">> very earnestly.",
+            ... b">",
+            ... b"> `I've had nothing yet,' Alice replied in an offended ",
+            ... b"> tone, `so I can't take more.'",
+            ... b"",
+            ... b"`You mean you can't take less,' said the Hatter: `it's ",
+            ... b"very easy to take more than nothing.'",
+            ... b"",
+            ... b"-- ",
+            ... b"Lewis Carroll")))
             >>> list(result) == [
             ...   ({'quotedepth': 2, 'type': PARAGRAPH},
             ...     u"`Take some more tea,' the March Hare said to Alice, "
@@ -193,9 +202,9 @@ class FormatFlowedDecoder:
         - A change in quotedepth:
 
             >>> result = decoder.decode(CRLF.join((
-            ... "> Depth one paragraph with flow space. ",
-            ... ">> Depth two paragraph with flow space. ",
-            ... "Depth zero paragraph with fixed line.")))
+            ... b"> Depth one paragraph with flow space. ",
+            ... b">> Depth two paragraph with flow space. ",
+            ... b"Depth zero paragraph with fixed line.")))
             >>> list(result) == [
             ...   ({'quotedepth': 1, 'type': PARAGRAPH},
             ...    u"Depth one paragraph with flow space. "),
@@ -208,8 +217,8 @@ class FormatFlowedDecoder:
         - A signature separator:
 
             >>> result = decoder.decode(CRLF.join((
-            ... "A paragraph with flow space. ",
-            ... "-- ")))
+            ... b"A paragraph with flow space. ",
+            ... b"-- ")))
             >>> list(result) == [
             ...   ({'quotedepth': 0, 'type': PARAGRAPH},
             ...    u"A paragraph with flow space. "),
@@ -219,7 +228,7 @@ class FormatFlowedDecoder:
         - The end of the message:
 
             >>> result = decoder.decode(CRLF.join((
-            ... "A paragraph with flow space. ",)))
+            ... b"A paragraph with flow space. ",)))
             >>> list(result) == [
             ...   ({'quotedepth': 0, 'type': PARAGRAPH},
             ...    u"A paragraph with flow space. ")]
@@ -235,8 +244,8 @@ class FormatFlowedDecoder:
 
             >>> decoder = FormatFlowedDecoder(delete_space=True)
             >>> result = decoder.decode(CRLF.join((
-            ... "Contrived example with a word- ",
-            ... "break across the paragraph.")))
+            ... b"Contrived example with a word- ",
+            ... b"break across the paragraph.")))
             >>> list(result) == [
             ...   ({'quotedepth': 0, 'type': PARAGRAPH},
             ...    u'Contrived example with a word-break across the '
@@ -249,10 +258,10 @@ class FormatFlowedDecoder:
 
             >>> decoder = FormatFlowedDecoder(character_set='cp037')
             >>> result = decoder.decode(CRLF.join((
-            ... "n@\\xe3\\x88\\x89\\xa2@\\x89\\xa2@\\x81@\\x98\\xa4\\x96\\xa3"
-            ... "\\x85\\x84@\\x97\\x81\\x99\\x81\\x87\\x99\\x81\\x97\\x88@",
-            ... "n@\\x85\\x95\\x83\\x96\\x84\\x85\\x84@\\x89\\x95@\\x83\\x97"
-            ... "\\xf0\\xf3\\xf7K")))
+            ... b"n@\\xe3\\x88\\x89\\xa2@\\x89\\xa2@\\x81@\\x98\\xa4\\x96\\xa3"
+            ... b"\\x85\\x84@\\x97\\x81\\x99\\x81\\x87\\x99\\x81\\x97\\x88@",
+            ... b"n@\\x85\\x95\\x83\\x96\\x84\\x85\\x84@\\x89\\x95@\\x83\\x97"
+            ... b"\\xf0\\xf3\\xf7K")))
             >>> list(result) == [
             ...   ({'quotedepth': 1, 'type': PARAGRAPH},
             ...    u'This is a quoted paragraph encoded in cp037.')]
@@ -261,11 +270,11 @@ class FormatFlowedDecoder:
         """
         para = u''
         pinfo = {'type': PARAGRAPH}
-        for line in flowed.split('\r\n'):
+        for line in flowed.split(b'\r\n'):
             line = line.decode(self.character_set, self.error_handling)
             quotedepth, line = self._stripquotes(line)
             line = self._stripstuffing(line)
-            if line == '-- ':
+            if line == u'-- ':
                 # signature separator
                 if para:
                     # exception case: flowed line followed by sig-sep
@@ -306,7 +315,7 @@ class FormatFlowedDecoder:
 
 
 class FormatFlowedEncoder:
-    """Object to generate format=flowed text
+    """Object to generate format=flowed bytes
 
     The following attributes influence the flowed formatting of text:
       extra_space (default: False)
@@ -342,21 +351,27 @@ class FormatFlowedEncoder:
         always prepend the space regardless:
 
             >>> encoder = FormatFlowedEncoder()
-            >>> encoder._spacestuff(u' leading space needs to be preserved')
-            u'  leading space needs to be preserved'
-            >>> encoder._spacestuff(u'> can be confused for a quotemark')
-            u' > can be confused for a quotemark'
-            >>> encoder._spacestuff(u'From is often escaped by MTAs')
-            u' From is often escaped by MTAs'
-            >>> encoder._spacestuff(u'Padding is considered harmless')
-            u'Padding is considered harmless'
-            >>> encoder._spacestuff(u'So forcing it is fine', True)
-            u' So forcing it is fine'
+            >>> encoder._spacestuff(
+            ...     u' leading space needs to be preserved') == (
+            ...     u'  leading space needs to be preserved')
+            True
+            >>> encoder._spacestuff(u'> can be confused for a quotemark') == (
+            ...     u' > can be confused for a quotemark')
+            True
+            >>> encoder._spacestuff(u'From is often escaped by MTAs') == (
+            ...     u' From is often escaped by MTAs')
+            True
+            >>> encoder._spacestuff(u'Padding is considered harmless') == (
+            ...     u'Padding is considered harmless')
+            True
+            >>> encoder._spacestuff(u'So forcing it is fine', True) == (
+            ...     u' So forcing it is fine')
+            True
 
         Note that empty lines can never be spacestuffed:
 
-            >>> encoder._spacestuff(u'')
-            u''
+            >>> encoder._spacestuff(u'') == u''
+            True
 
         """
         if not line:
@@ -366,7 +381,7 @@ class FormatFlowedEncoder:
         # 'From' (so independent of the unicode sequence u'From').
         # For simplicity's sake, we spacestuff it any time a line starts with
         # it before adding quotemarks and encoding the line.
-        if force or line[0] in (' ', '>') or line.startswith('From'):
+        if force or line[0] in u' >' or line.startswith(u'From'):
             return u' ' + line
         return line
 
@@ -404,35 +419,35 @@ class FormatFlowedEncoder:
             ...   ({'quotedepth': 0, 'type': PARAGRAPH}, u"Carol Lewis"),
             ... )
             >>> result = FormatFlowedEncoder(width=45).encode(chunks)
-            >>> result.split('\\r\\n') == [
-            ...   ">> `Take some more tea,' the March Hare said ",
-            ...   ">> to Alice, very earnestly.",
-            ...   ">",
-            ...   "> `I've had nothing yet,' Alice replied in ",
-            ...   "> an offended tone, `so I can't take more.'",
-            ...   "",
-            ...   "`You mean you can't take less,' said the ",
-            ...   "Hatter: `it's very easy to take more than ",
-            ...   "nothing.'",
-            ...   "",
-            ...   "-- ",
-            ...   "Carol Lewis",
-            ...   ""]
+            >>> result.split(b'\\r\\n') == [
+            ...   b">> `Take some more tea,' the March Hare said ",
+            ...   b">> to Alice, very earnestly.",
+            ...   b">",
+            ...   b"> `I've had nothing yet,' Alice replied in ",
+            ...   b"> an offended tone, `so I can't take more.'",
+            ...   b"",
+            ...   b"`You mean you can't take less,' said the ",
+            ...   b"Hatter: `it's very easy to take more than ",
+            ...   b"nothing.'",
+            ...   b"",
+            ...   b"-- ",
+            ...   b"Carol Lewis",
+            ...   b""]
             True
 
         """
         encoded = []
         for info, text in chunks:
             encoded.append(self.encodeChunk(text, **info))
-        return ''.join(encoded)
+        return b''.join(encoded)
 
     def encodeChunk(self, chunk, type=PARAGRAPH, quotedepth=0):
         """Encode a chunk of text to format=flowed
 
-        The chunk is encoded to format=flowed text, controlled by the
+        The chunk is encoded to format=flowed bytes, controlled by the
         following arguments.
         chunk
-          The unicode text to be encoded. Newlines are considered to be
+          The Unicode text to be encoded. Newlines are considered to be
           whitespace and will be converted to spaces.
         type (default: PARAGRAPH)
           Chunk type; one of PARAGRAPH, FIXED or SIGNATURE_SEPARATOR. When
@@ -455,49 +470,61 @@ class FormatFlowedEncoder:
 
         - fixed lines:
 
-            >>> encoder.encodeChunk(u'A fixed line remains unaltered', FIXED)
-            'A fixed line remains unaltered\\r\\n'
-            >>> encoder.encodeChunk(u'Although quoting is prepended', FIXED, 2)
-            '>> Although quoting is prepended\\r\\n'
-            >>> encoder.encodeChunk(u'Trailing spaces are removed  ', FIXED)
-            'Trailing spaces are removed\\r\\n'
-            >>> encoder.encodeChunk(u'> and special first chars are fluffed',
-            ...                     FIXED)
-            ' > and special first chars are fluffed\\r\\n'
+            >>> encoder.encodeChunk(
+            ...     u'A fixed line remains unaltered', FIXED) == (
+            ...     b'A fixed line remains unaltered\\r\\n')
+            True
+            >>> encoder.encodeChunk(
+            ...     u'Although quoting is prepended', FIXED, 2) == (
+            ...     b'>> Although quoting is prepended\\r\\n')
+            True
+            >>> encoder.encodeChunk(
+            ...     u'Trailing spaces are removed  ', FIXED) == (
+            ...     b'Trailing spaces are removed\\r\\n')
+            True
+            >>> encoder.encodeChunk(
+            ...     u'> and special first chars are fluffed', FIXED) == (
+            ...     b' > and special first chars are fluffed\\r\\n')
+            True
 
         - a paragraph (the default type):
 
             >>> result = encoder.encodeChunk(
             ...   u"`Take some more tea,' the March Hare said to Alice, "
             ...   u"very earnestly.")
-            >>> result == ("`Take some more tea,' the March Hare said \\r\\n"
-            ...            "to Alice, very earnestly.\\r\\n")
+            >>> result == (b"`Take some more tea,' the March Hare said \\r\\n"
+            ...            b"to Alice, very earnestly.\\r\\n")
             True
             >>> result = encoder.encodeChunk(
             ...   u"`I've had nothing yet,' Alice replied in an offended "
             ...   u"tone, `so I can't take more.'", PARAGRAPH, 1)
-            >>> result == ("> `I've had nothing yet,' Alice replied in \\r\\n"
-            ...            "> an offended tone, `so I can't take more.'\\r\\n")
+            >>> result == (
+            ...     b"> `I've had nothing yet,' Alice replied in \\r\\n"
+            ...     b"> an offended tone, `so I can't take more.'\\r\\n")
             True
             >>> result = encoder.encodeChunk(
-            ...   u'The   wrapping   deals   quite   well  with > eratic '
-            ...   u'spacing and space fluffs characters where needed.')
-            >>> result == ("The   wrapping   deals   quite   well  with \\r\\n"
-            ...            " > eratic spacing and space fluffs \\r\\n"
-            ...            "characters where needed.\\r\\n")
+            ...     u'The   wrapping   deals   quite   well  with > eratic '
+            ...     u'spacing and space fluffs characters where needed.')
+            >>> result == (
+            ...     b"The   wrapping   deals   quite   well  with \\r\\n"
+            ...     b" > eratic spacing and space fluffs \\r\\n"
+            ...     b"characters where needed.\\r\\n")
             True
 
         - signature separators:
 
-            >>> encoder.encodeChunk(u'-- ', SIGNATURE_SEPARATOR)
-            '-- \\r\\n'
-            >>> encoder.encodeChunk(u'-- ', SIGNATURE_SEPARATOR, 3)
-            '>>> -- \\r\\n'
+            >>> encoder.encodeChunk(u'-- ', SIGNATURE_SEPARATOR) == (
+            ...     b'-- \\r\\n')
+            True
+            >>> encoder.encodeChunk(u'-- ', SIGNATURE_SEPARATOR, 3) == (
+            ...     b'>>> -- \\r\\n')
+            True
 
           Note that the actual chunk value is ignored for this type:
 
-            >>> encoder.encodeChunk(u'foobar', SIGNATURE_SEPARATOR)
-            '-- \\r\\n'
+            >>> encoder.encodeChunk(u'foobar', SIGNATURE_SEPARATOR) == (
+            ...     b'-- \\r\\n')
+            True
 
 
         Encoder options
@@ -514,8 +541,8 @@ class FormatFlowedEncoder:
             >>> result = encoder.encodeChunk(
             ...   u'This is useful for texts with many word-breaks or few '
             ...   u'spaces')
-            >>> result == ("This is useful for texts with many word- \\r\\n"
-            ...            "breaks or few spaces\\r\\n")
+            >>> result == (b"This is useful for texts with many word- \\r\\n"
+            ...            b"breaks or few spaces\\r\\n")
             True
 
         - character_set controls the output encoding:
@@ -523,8 +550,8 @@ class FormatFlowedEncoder:
             >>> encoder = FormatFlowedEncoder(character_set='cp037')
             >>> result = encoder.encodeChunk(u'Can you read me now?',
             ...                              quotedepth=1)
-            >>> result == ('n@\\xc3\\x81\\x95@\\xa8\\x96\\xa4@\\x99\\x85\\x81'
-            ...            '\\x84@\\x94\\x85@\\x95\x96\\xa6o\\r\\n')
+            >>> result == (b'n@\\xc3\\x81\\x95@\\xa8\\x96\\xa4@\\x99\\x85\\x81'
+            ...            b'\\x84@\\x94\\x85@\\x95\\x96\\xa6o\\r\\n')
             True
 
         - spacestuff_quoted causes quoted lines to be spacestuffed by default;
@@ -532,8 +559,10 @@ class FormatFlowedEncoder:
           by default, but can be switched off:
 
             >>> encoder = FormatFlowedEncoder(spacestuff_quoted=False)
-            >>> encoder.encodeChunk(u'Look Ma! No space!', quotedepth=1)
-            '>Look Ma! No space!\\r\\n'
+            >>> encoder.encodeChunk(
+            ...     u'Look Ma! No space!', quotedepth=1) == (
+            ...     b'>Look Ma! No space!\\r\\n')
+            True
 
 
         RFC 2822 compliance
@@ -546,17 +575,17 @@ class FormatFlowedEncoder:
 
             >>> encoder = FormatFlowedEncoder()
             >>> result = encoder.encodeChunk(u'-' * 1500, FIXED)
-            >>> result = result.split('\\r\\n')
+            >>> result = result.split(b'\\r\\n')
             >>> len(result)
             3
             >>> len(result[0])
             998
-            >>> result == ['-' * 998, '-' * 502, '']
+            >>> result == [b'-' * 998, b'-' * 502, b'']
             True
 
         """
         # cleanup: replace newlines with spaces and remove trailing spaces
-        chunk = ' '.join(chunk.rstrip().splitlines())
+        chunk = u' '.join(chunk.rstrip().splitlines())
 
         # Pre-encode quoting
         quotemarker = u'>' * quotedepth
@@ -582,7 +611,7 @@ class FormatFlowedEncoder:
             # if the wrapping of paragraphs included spaces at the end of the
             # lines.
             if line != chunk[-1]:
-                line += ' '
+                line += u' '
             line = self._spacestuff(line, forcestuff)
             line = quotemarker + line.encode(self.character_set,
                                              self.error_handling)
@@ -596,8 +625,8 @@ class FormatFlowedEncoder:
 
             lines.append(line)
 
-        lines.append('')  # ensure last ending CRLF
-        return '\r\n'.join(lines)
+        lines.append(b'')  # ensure last ending CRLF
+        return b'\r\n'.join(lines)
 
 
 # -- Convenience functions ---------------------------------------------
@@ -615,7 +644,7 @@ def decode(flowed, **kwargs):
 
 
 def encode(chunks, **kwargs):
-    """Convert chunks of text to format=flowed
+    """Convert chunks of Unicode text to format=flowed
 
     See the FormatFlowedEncoder.encode docstring for more information. All
     keyword arguments are passed to the FormatFlowedEncoder instance.
@@ -626,12 +655,12 @@ def encode(chunks, **kwargs):
 
 
 def convertToWrapped(flowed, width=78, quote=u'>', wrap_fixed=True, **kwargs):
-    """Covert flowed text to encoded and wrapped text
+    """Covert flowed bytes to encoded and wrapped text
 
     Create text suitable for a proportional font, fixed with, plain text
     display. The argements are interpreted as follows:
       flowed
-        The format=flowed formatted text to convert
+        The format=flowed formatted bytestring to convert
       width (default: 78)
         The maximum line length at which to wrap paragraphs.
       quote (default: u'>')
@@ -646,31 +675,31 @@ def convertToWrapped(flowed, width=78, quote=u'>', wrap_fixed=True, **kwargs):
 
       Here is a simple example:
 
-        >>> CRLF = '\\r\\n'
+        >>> CRLF = b'\\r\\n'
         >>> result = convertToWrapped(CRLF.join((
-        ... ">> `Take some more tea,' the March Hare said to Alice, very ",
-        ... ">> earnestly.",
-        ... ">",
-        ... "> `I've had nothing yet,' Alice replied in an offended ",
-        ... "> tone, `so I can't take more.'",
-        ... "",
-        ... "`You mean you can't take less,' said the Hatter: `it's very ",
-        ... "easy to take more than nothing.'",
-        ... "",
-        ... "-- ",
-        ... "Lewis Caroll")), width=60)
-        >>> result.split('\\n') == [
-        ...   ">> `Take some more tea,' the March Hare said to Alice, very",
-        ...   ">> earnestly.",
-        ...   "> ",
-        ...   "> `I've had nothing yet,' Alice replied in an offended tone,",
-        ...   "> `so I can't take more.'",
-        ...   "",
-        ...   "`You mean you can't take less,' said the Hatter: `it's very",
-        ...   "easy to take more than nothing.'",
-        ...   "",
-        ...   "-- ",
-        ...   "Lewis Caroll"]
+        ... b">> `Take some more tea,' the March Hare said to Alice, very ",
+        ... b">> earnestly.",
+        ... b">",
+        ... b"> `I've had nothing yet,' Alice replied in an offended ",
+        ... b"> tone, `so I can't take more.'",
+        ... b"",
+        ... b"`You mean you can't take less,' said the Hatter: `it's very ",
+        ... b"easy to take more than nothing.'",
+        ... b"",
+        ... b"-- ",
+        ... b"Lewis Caroll")), width=60)
+        >>> result.split(u'\\n') == [
+        ...   u">> `Take some more tea,' the March Hare said to Alice, very",
+        ...   u">> earnestly.",
+        ...   u"> ",
+        ...   u"> `I've had nothing yet,' Alice replied in an offended tone,",
+        ...   u"> `so I can't take more.'",
+        ...   u"",
+        ...   u"`You mean you can't take less,' said the Hatter: `it's very",
+        ...   u"easy to take more than nothing.'",
+        ...   u"",
+        ...   u"-- ",
+        ...   u"Lewis Caroll"]
         True
 
     """
@@ -694,10 +723,10 @@ def convertToWrapped(flowed, width=78, quote=u'>', wrap_fixed=True, **kwargs):
 
 
 def convertToFlowed(text, quotechars=u'>|%', **kwargs):
-    """Convert plain text to format=flowed
+    """Convert plain (Unicode) text to format=flowed
 
-    Attempt to interpret the plain text as paragraphs and fixed lines,
-    creating a format=flowed encoded text. The paragraph detection is fairly
+    Attempt to interpret the text as paragraphs and fixed lines,
+    creating a format=flowed encoded bytes. The paragraph detection is fairly
     simple and probably not suitable for real-world email.
 
     text
@@ -731,7 +760,7 @@ class _FlowedTextWrapper(textwrap.TextWrapper):
                                       break_long_words=extra_space)
         self.extra_space = extra_space
         if not extra_space:
-            self.wordsep_re = re.compile(r'(\s+)')
+            self.wordsep_re = re.compile(u'(\\s+)', flags=re.UNICODE)
 
     def _wrap(self, chunks):
         # Simplified and customized version of textwrap.TextWrapper
@@ -745,7 +774,7 @@ class _FlowedTextWrapper(textwrap.TextWrapper):
 
             # Don't strip space at the start of a line when using extra_space
             # because spaces are significant there.
-            if chunks[-1].strip() == '' and lines and not self.extra_space:
+            if chunks[-1].strip() == u'' and lines and not self.extra_space:
                 del chunks[-1]
 
             while chunks:
@@ -766,7 +795,7 @@ class _FlowedTextWrapper(textwrap.TextWrapper):
                 del cur_line[-1]
 
             if cur_line:
-                lines.append(''.join(cur_line))
+                lines.append(u''.join(cur_line))
         return lines
 
 
