@@ -733,16 +733,6 @@ class _FlowedTextWrapper(textwrap.TextWrapper):
         if not extra_space:
             self.wordsep_re = re.compile(r'(\s+)')
 
-    def _handle_long_word(self, reversed_chunks, cur_line, cur_len, width):
-        # _handle_long_word taken from python 2.5 CVS speed optimisation
-        # Can be removed if this is used with python 2.5
-        space_left = max(width - cur_len, 1)
-        if self.break_long_words:
-            cur_line.append(reversed_chunks[-1][:space_left])
-            reversed_chunks[-1] = reversed_chunks[-1][space_left:]
-        elif not cur_line:
-            cur_line.append(reversed_chunks.pop())
-
     def _wrap(self, chunks):
         # Simplified and customized version of textwrap.TextWrapper
         # Based on textwrapper rev. 1.37 in python CVS, with speed optimisation
