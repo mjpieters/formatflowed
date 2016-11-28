@@ -13,6 +13,9 @@ was written by `Martijn Pieters <mj@zopatista.com>`_.
 The latest version can be downloaded from the `pypi page`_; the code repository 
 is hosted `GitHub`_.
 
+.. image:: https://travis-ci.org/mjpieters/formatflowed.svg?branch=master
+    :target: https://travis-ci.org/mjpieters/formatflowed
+
 .. _RFC 2646: http://www.faqs.org/rfcs/rfc2646.html
 .. _RFC 3676: http://www.faqs.org/rfcs/rfc3676.html
 .. _Logicalware: http://www.logicalware.com/
