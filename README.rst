@@ -24,7 +24,7 @@ Requirements
 ------------
 
 formatflowed.py has been tested with python 2.6 and up. Installation requires
-either the setuptools or distutils libraries.
+setuptools.
 
 
 Installation
