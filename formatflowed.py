@@ -596,7 +596,7 @@ class FormatFlowedEncoder:
 
             lines.append(line)
 
-        lines.append('') # ensure last ending CRLF
+        lines.append('')  # ensure last ending CRLF
         return '\r\n'.join(lines)
 
 
@@ -613,6 +613,7 @@ def decode(flowed, **kwargs):
     decoder = FormatFlowedDecoder(**kwargs)
     return decoder.decode(flowed)
 
+
 def encode(chunks, **kwargs):
     """Convert chunks of text to format=flowed
 
@@ -622,6 +623,7 @@ def encode(chunks, **kwargs):
     """
     encoder = FormatFlowedEncoder(**kwargs)
     return encoder.encode(chunks)
+
 
 def convertToWrapped(flowed, width=78, quote=u'>', wrap_fixed=True, **kwargs):
     """Covert flowed text to encoded and wrapped text
@@ -689,6 +691,7 @@ def convertToWrapped(flowed, width=78, quote=u'>', wrap_fixed=True, **kwargs):
                                         initial_indent=quotemarker,
                                         subsequent_indent=quotemarker))
     return u'\n'.join(result)
+
 
 def convertToFlowed(text, quotechars=u'>|%', **kwargs):
     """Convert plain text to format=flowed
@@ -769,7 +772,7 @@ class _FlowedTextWrapper(textwrap.TextWrapper):
             # Don't drop space at end of line if using extra_space for
             # marking flowed lines because otherwise there is no space between
             # this line and the next when decoding the flowed text
-            if cur_line and cur_line[-1].strip() == '' and not self.extra_space:
+            if cur_line and not cur_line[-1].strip() and not self.extra_space:
                 del cur_line[-1]
 
             if cur_line:
