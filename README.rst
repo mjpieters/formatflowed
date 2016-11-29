@@ -26,8 +26,8 @@ is hosted `GitHub`_.
 Requirements
 ------------
 
-formatflowed.py has been tested with python 2.6 and up. Installation requires
-setuptools.
+formatflowed.py has been tested with python versions 2.6 - 2.7, 3.3 - 3.6 and
+pypy and pypy3. Installation requires setuptools.
 
 
 Installation
